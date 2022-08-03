@@ -1,0 +1,78 @@
+---
+# tasks file for k8s_master
+- name: installing docker
+  package:
+    name:
+    - docker
+    state: present
+
+- name: Add YUM repository for Kubernetes
+  ansible.builtin.copy:
+    src: /home/admin/project/ansible/dynamic_inventory/k8s.repo
+    dest: /etc/yum.repos.d/kubernetes.repo
+
+- name: install k8s
+  shell: |
+          sudo yum update -y
+          sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+- name: disable swap
+  shell: |
+          sudo swapoff -a
+          sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+- name: Restart kubelet
+  service:
+    name: kubelet
+    daemon_reload: yes
+    state: restarted
+
+
+- name: installing iproute-tc
+  package:
+    name:
+    - iproute-tc
+    state: present
+
+- name: enabling docker and kubelet service
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - kubelet
+    - docker
+
+#- name: pulling all images
+#  shell: kubeadm config images pull
+
+- name: copying content of the daemon.json file
+  become: yes
+  copy:
+    dest: /etc/docker/daemon.json
+    src:  daemon.json
+
+- name: restarting docker services
+  service:
+    name: docker
+    state: restarted
+
+- name: copying k8s conf fil
+  copy:
+    dest: /etc/sysctl.d/k8s.conf
+    src: k8s.conf
+
+- name: refreshing sysctl
+  shell: "sysctl --system"
+
+- name: Copy join command from Ansiblehost to the worker nodes.
+  become: yes
+  copy:
+    src: /tmp/kubernetes_join_command
+    dest: /tmp/kubernetes_join_command
+    mode: 0777
+
+- name: Join the Worker nodes to the cluster.
+  become: yes
+  command: sh /tmp/kubernetes_join_command
+  register: joined_or_not

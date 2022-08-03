@@ -1,0 +1,18 @@
+---
+- hosts: tag_Name_Master
+  become: yes
+  remote_user: admin
+  roles:
+      - master
+
+- hosts: tag_Name_Worker1
+  become: yes
+  remote_user: admin
+  roles:
+      - workers
+
+- hosts: tag_Name_Worker2
+  become: yes
+  remote_user: admin
+  roles:
+      - workers
