@@ -273,6 +273,18 @@ resource "aws_instance" "web3" {
   instance_type = "t2.micro"
   availability_zone = "us-east-1a"
   key_name = "ec2"
+  user_data = <<EOF
+                  #! /bin/bash
+                  sudo su
+                  yum update -y
+                  useradd -m "admin"
+                  echo 1q1qas12 | passwd admin --stdin
+                  echo "admin ALL=(ALL) NOPASSWD: ALL" >>  /etc/sudoers
+                  yum install pip -y
+                  yum install python3 -y
+                  pip3 install boto3 -y
+                  pip3 install ansible -y
+                  EOF
   network_interface {
       device_index         = 0
       network_interface_id = aws_network_interface.tf-web-server-nic3.id
